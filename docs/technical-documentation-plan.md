@@ -1,12 +1,11 @@
-# 单人技术仓库：极简功能清单与实现思路（无中间件版）
+# 单人技术仓库：极简功能清单与实现思路（QLExpress 自定义引擎版）
 
 ## 1. 目标
 
-以最简单方案实现一个可用的接口测试平台：
+以最简单方案实现可用的接口测试平台，并满足你提出的两个约束：
 
-- 只保留核心能力：用例管理、执行、报告、定时任务。
-- **不引入 Redis / RabbitMQ / MinIO 等中间件**。
-- 仅使用：`Spring Boot + PostgreSQL + Karate`。
+1. **不引入过多中间件**（只保留 PostgreSQL）。
+2. **执行与规则引擎自定义实现**，表达式统一使用阿里巴巴 **QLExpress**。
 
 ---
 
@@ -15,16 +14,17 @@
 ### 必选
 
 - Java 21
-- Spring Boot 3.x（Web、Validation、Actuator）
+- Spring Boot 3.x（Web、Validation、Actuator、Scheduling）
 - PostgreSQL（唯一外部依赖）
-- Karate（执行引擎）
+- QLExpress（表达式引擎）
+- JDK HttpClient（HTTP 执行）
 
 ### 可选（不是当前阶段）
 
-- Flyway（数据库迁移）
+- Flyway（迁移管理）
 - Swagger/OpenAPI（接口文档）
 
-> 不做前后端分离复杂页面，先以后端 API + Swagger 页面为主。
+> 不上 Redis、MQ、对象存储，避免早期运维复杂度。
 
 ---
 
@@ -33,11 +33,11 @@
 ## 3.1 P0（必须）
 
 1. 环境与变量管理（环境、变量覆盖）
-2. 用例管理（Karate 脚本）
+2. 用例管理（自定义 case_definition，内含 steps）
 3. JSON/YAML 数据集管理
 4. 套件管理（多个用例顺序执行）
 5. 手动触发执行（Run）
-6. 执行结果与报告查询（通过率、失败详情）
+6. 执行报告查询（通过率、失败步骤、失败表达式）
 7. 基础健康检查与日志
 
 ## 3.2 P1（后续）
@@ -50,96 +50,59 @@
 
 1. OpenAPI 导入 case
 2. 报告对比（与上一次 run）
-3. 简单通知（Webhook）
+3. Webhook 通知
 
 ---
 
-## 4. 实现思路（按能力域）
+## 4. 自定义引擎设计（QLExpress 为核心）
 
-## 4.1 资产管理（Case/DataSet/Suite）
+## 4.1 引擎列表
 
-### 实现
+1. **ContextEngine**  
+   合并环境变量 + 数据集 + 运行时变量，生成统一上下文 `Map<String, Object>`。
 
-- `t_test_case`：保存 Karate 脚本文本。
-- `t_test_case_data_set`：保存 JSON/YAML 文本。
-- `t_test_suite` + `t_test_suite_case`：保存执行顺序。
+2. **RequestRenderEngine**  
+   用 QLExpress 计算 URL/Headers/Body 中的表达式并渲染请求。
 
-### 原则
+3. **HttpExecuteEngine**  
+   发送 HTTP 请求并返回标准响应对象（status、headers、body、elapsed）。
 
-- 所有资产都存数据库，不依赖 Git 文件扫描。
-- 用例更新时 `version_no + 1`。
-- 数据集保存前做格式校验（JSON/YAML）。
+4. **AssertEngine（QLExpress）**  
+   执行断言表达式列表，产出 pass/fail、失败表达式、失败原因。
 
-## 4.2 执行引擎（Karate）
+5. **ExtractEngine（QLExpress）**  
+   从响应中提取变量写回上下文，供后续 step 使用。
 
-### 实现
+6. **OrchestratorEngine**  
+   串联上述引擎按 step 顺序执行，写入 run/result。
 
-- 调用 `POST /api/suites/{id}/run` 创建一次 run。
-- 服务内同步执行（MVP），按套件顺序逐条跑 case。
-- 每条 case 执行后写入结果表。
+## 4.2 QLExpress 约定
 
-### 原则
+- 断言表达式示例：`status == 200 && body.code == 0`
+- 提取表达式示例：`token = body.data.token`
+- 条件执行示例：`skipWhen = env != 'test'`
 
-- 先单线程执行，稳定后再做并发。
-- 失败即记录，不中断整个 run（可配置）。
-
-## 4.3 报告能力
-
-### 实现
-
-- `GET /api/runs/{id}`：run 概览。
-- `GET /api/runs/{id}/report`：case 级明细。
-- 趋势统计用 SQL 聚合（按天成功率）。
-
-### 原则
-
-- 请求/响应快照截断存储（避免数据膨胀）。
-- 日志中对 token/password 做脱敏。
-
-## 4.4 调度能力（P1）
-
-### 实现
-
-- `t_test_plan` 保存 cron。
-- Spring `@Scheduled` 每分钟扫描启用计划并触发 run。
-
-### 原则
-
-- 不引入队列，直接数据库轮询。
-- 一个计划同一时间只允许一个运行实例（避免重入）。
+> 通过注册自定义函数（如 `jsonPath(body, "$.data.id")`）增强表达能力。
 
 ---
 
-## 5. 极简架构图（文字版）
+## 5. 最小 API 清单
 
-`Client -> Spring Boot API -> PostgreSQL`
-
-同一个 Spring Boot 进程内包含：
-
-1. 资产管理 API
-2. 执行服务（调用 Karate）
-3. 报告聚合
-4. 定时调度（P1）
-
----
-
-## 6. 最小 API 清单
-
-### 6.1 环境与变量
+### 5.1 环境与变量
 
 - `POST /api/environments`
 - `GET /api/environments`
 - `POST /api/variables`
 - `GET /api/variables?environmentId=`
 
-### 6.2 用例与数据集
+### 5.2 用例与数据集
 
 - `POST /api/cases`
 - `PUT /api/cases/{id}`
 - `POST /api/cases/{id}/datasets`
 - `GET /api/cases/{id}/datasets`
 
-### 6.3 套件与执行
+### 5.3 套件与执行
 
 - `POST /api/suites`
 - `POST /api/suites/{id}/cases`
@@ -147,18 +110,25 @@
 - `GET /api/runs/{id}`
 - `GET /api/runs/{id}/report`
 
-### 6.4 计划（P1）
+### 5.4 计划（P1）
 
 - `POST /api/plans`
 - `PATCH /api/plans/{id}/enable`
 
 ---
 
+## 6. Mermaid 架构图
+
+完整图表请看：`docs/architecture-mermaid.md`
+
+---
+
 ## 7. 本周直接开工建议
 
-1. 先把 `Case + DataSet + Suite + Run` 四个核心模块做完。
-2. 先打通“手动执行 + 报告查询”，不做定时和 CI。
-3. 再补 P1：`@Scheduled` 定时执行。
+1. 先定义 `case_definition` JSON 结构（step/request/assert/extract）。
+2. 优先实现 `ContextEngine + HttpExecuteEngine + AssertEngine` 三个核心引擎。
+3. 打通“手动执行 -> 结果入库 -> 报告查询”主链路。
+4. 第 2 周再补 `ExtractEngine` 与 `@Scheduled` 计划任务。
 
 ---
 

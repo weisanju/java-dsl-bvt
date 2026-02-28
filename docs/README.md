@@ -4,15 +4,17 @@
 
 ## 已完成
 
-- [功能清单与实现思路（单人版）](./technical-documentation-plan.md)
-- [MVP 按周排期（单人版）](./mvp-weekly-plan.md)
+- [功能清单与实现思路（QLExpress 自定义引擎）](./technical-documentation-plan.md)
+- [MVP 按周排期（QLExpress 极简版）](./mvp-weekly-plan.md)
 - [数据库表结构草案（极简 DDL）](./platform-mvp-ddl.sql)
+- [Mermaid 架构设计图](./architecture-mermaid.md)
 
 ## 推荐阅读顺序
 
-1. 先读 `technical-documentation-plan.md`（看整体功能与实现路线）
-2. 再读 `mvp-weekly-plan.md`（看每周执行顺序）
-3. 最后看 `platform-mvp-ddl.sql`（看最小数据落地）
+1. 先读 `technical-documentation-plan.md`（看功能清单与引擎实现）
+2. 再读 `architecture-mermaid.md`（看系统组件图与执行时序）
+3. 再读 `mvp-weekly-plan.md`（看每周执行顺序）
+4. 最后看 `platform-mvp-ddl.sql`（看最小数据落地）
 
 ## 文档使用约定
 

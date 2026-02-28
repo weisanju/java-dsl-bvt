@@ -1,8 +1,9 @@
--- 极简版 DDL（单人实现 / 无中间件）
--- 技术栈：Spring Boot + PostgreSQL + Karate
+-- 极简版 DDL（单人实现 / 无中间件 / QLExpress 自定义引擎）
+-- 技术栈：Spring Boot + PostgreSQL + QLExpress
 -- 说明：
 -- 1) 仅保留 MVP 必需表；
--- 2) 不包含用户权限、消息队列、runner 节点、通知等扩展模型。
+-- 2) 不包含用户权限、消息队列、runner 节点、通知等扩展模型；
+-- 3) 用例定义存为 JSON（case_definition），由自定义引擎执行。
 
 -- =========================
 -- 1. 项目与环境
@@ -56,7 +57,10 @@ CREATE TABLE IF NOT EXISTS t_test_case (
     project_id          BIGINT NOT NULL REFERENCES t_project(id) ON DELETE CASCADE,
     case_code           VARCHAR(64) NOT NULL,
     case_name           VARCHAR(128) NOT NULL,
-    script_content      TEXT NOT NULL,
+    engine_type         VARCHAR(16) NOT NULL DEFAULT 'QLEXPRESS'
+                        CHECK (engine_type IN ('QLEXPRESS')),
+    case_schema_version INTEGER NOT NULL DEFAULT 1,
+    case_definition     JSONB NOT NULL,
     tags                JSONB,
     version_no          INTEGER NOT NULL DEFAULT 1,
     status              VARCHAR(16) NOT NULL DEFAULT 'ACTIVE'
@@ -140,13 +144,16 @@ CREATE TABLE IF NOT EXISTS t_test_case_result (
     run_id              BIGINT NOT NULL REFERENCES t_test_run(id) ON DELETE CASCADE,
     case_id             BIGINT NOT NULL REFERENCES t_test_case(id) ON DELETE RESTRICT,
     suite_case_id       BIGINT REFERENCES t_test_suite_case(id) ON DELETE SET NULL,
-    scenario_name       VARCHAR(255),
+    step_no             INTEGER,
+    step_name           VARCHAR(128),
     status              VARCHAR(16) NOT NULL
                         CHECK (status IN ('PASSED', 'FAILED', 'SKIPPED', 'ERROR')),
     response_time_ms    INTEGER,
     assertion_failed    INTEGER NOT NULL DEFAULT 0,
+    failed_assert_expr  TEXT,
     request_snapshot    JSONB,
     response_snapshot   JSONB,
+    extracted_vars      JSONB,
     error_message       TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -194,4 +201,5 @@ CREATE INDEX IF NOT EXISTS idx_t_test_plan_status
 
 -- 备注：
 -- 1) updated_at 可由应用层统一维护；
--- 2) 该版本专注 MVP，后续可平滑增加认证、消息队列、对象存储等扩展能力。
+-- 2) case_definition 建议约定 step 结构，便于后续平滑升级；
+-- 3) 后续若规模增长，可增加 MQ/缓存/分布式执行能力。
