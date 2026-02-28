@@ -48,7 +48,7 @@
 ## 3.3 测试分层
 
 1. **单元测试（主力）**  
-   覆盖 `ContextEngine / RequestRenderEngine / AssertEngine / ExtractEngine`。
+   覆盖 `ConfigParserEngine / ContextEngine / RequestRenderEngine / AssertEngine / ExtractEngine`。
 2. **组件测试**  
    覆盖 `OrchestratorEngine` 的编排链路（使用 mock HTTP client）。
 3. **API 测试**  
@@ -61,7 +61,7 @@
 ## 4.1 P0（必须）
 
 1. 环境与变量管理（环境、变量覆盖）
-2. 用例管理（`case_definition`，含 steps）
+2. 用例管理（基于 YAML/JSON 的 `case_config`，含 steps）
 3. JSON/YAML 数据集管理
 4. 套件管理（顺序执行）
 5. 手动触发执行（Run）
@@ -87,19 +87,22 @@
 1. **ContextEngine**  
    合并环境变量 + 数据集 + 运行时变量，生成统一上下文。
 
-2. **RequestRenderEngine**  
+2. **ConfigParserEngine**  
+   解析 YAML/JSON 配置并转换为统一内部结构（NormalizedCaseDefinition）。
+
+3. **RequestRenderEngine**  
    用 QLExpress 渲染 URL/Headers/Body 表达式。
 
-3. **HttpExecuteEngine**  
+4. **HttpExecuteEngine**  
    发起 HTTP 请求，返回标准响应对象（status/body/elapsed）。
 
-4. **AssertEngine（QLExpress）**  
+5. **AssertEngine（QLExpress）**  
    执行断言表达式，输出 pass/fail 与失败表达式。
 
-5. **ExtractEngine（QLExpress）**  
+6. **ExtractEngine（QLExpress）**  
    从响应提取变量回写上下文。
 
-6. **OrchestratorEngine**  
+7. **OrchestratorEngine**  
    编排 step 流程并落库 run/result。
 
 ### 5.1 QLExpress 约定
@@ -110,42 +113,61 @@
 
 ---
 
-## 6. 最小 API 清单
+## 6. 配置格式约定（YAML/JSON）
 
-### 6.1 环境与变量
+### 6.1 统一逻辑模型
+
+- `meta`：用例元信息（name/version/tags）
+- `steps[]`：步骤数组
+  - `request`：method/url/headers/body/timeout
+  - `assertions[]`：QLExpress 断言表达式
+  - `extracts{}`：变量提取表达式映射
+  - `skipWhen`：条件跳过表达式（可选）
+
+### 6.2 落库策略
+
+- API 接收 `configFormat = JSON|YAML` + `configContent`。
+- 服务端先解析并校验，再转为统一 `normalized_definition(JSONB)`。
+- 保存原始配置文本用于回显，执行时只读取统一结构。
+
+---
+
+## 7. 最小 API 清单
+
+### 7.1 环境与变量
 - `POST /api/environments`
 - `GET /api/environments`
 - `POST /api/variables`
 - `GET /api/variables?environmentId=`
 
-### 6.2 用例与数据集
-- `POST /api/cases`
-- `PUT /api/cases/{id}`
+### 7.2 用例与数据集
+- `POST /api/cases`（支持 YAML/JSON）
+- `PUT /api/cases/{id}`（支持 YAML/JSON）
 - `POST /api/cases/{id}/datasets`
 - `GET /api/cases/{id}/datasets`
 
-### 6.3 套件与执行
+### 7.3 套件与执行
 - `POST /api/suites`
 - `POST /api/suites/{id}/cases`
 - `POST /api/suites/{id}/run`
 - `GET /api/runs/{id}`
 - `GET /api/runs/{id}/report`
 
-### 6.4 计划（P1）
+### 7.4 计划（P1）
 - `POST /api/plans`
 - `PATCH /api/plans/{id}/enable`
 
 ---
 
-## 7. Mermaid 架构图
+## 8. Mermaid 架构图
 
 完整图表见：`docs/architecture-mermaid.md`
 
 ---
 
-## 8. 本周直接开工建议（TDD）
+## 9. 本周直接开工建议（TDD）
 
-1. 先写 `AssertEngine` 的失败测试：表达式为 false 时返回 failedExpr。  
-2. 再写最小实现使测试通过。  
-3. 按同样方式推进 `ContextEngine -> RequestRenderEngine -> OrchestratorEngine`。  
-4. 最后补 API 层测试，打通 run 主链路。  
+1. 先写 `ConfigParserEngine` 的失败测试：非法 YAML/JSON 必须拒绝。  
+2. 再写最小实现使 JSON/YAML 都能解析为同一结构。  
+3. 按同样方式推进 `AssertEngine -> ExtractEngine -> OrchestratorEngine`。  
+4. 最后补 API 层测试，验证 YAML 与 JSON 执行结果一致。  

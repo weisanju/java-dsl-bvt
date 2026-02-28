@@ -25,6 +25,7 @@ flowchart LR
 ### 目标对象
 
 - `ContextEngine`
+- `ConfigParserEngine`
 - `RequestRenderEngine`
 - `AssertEngine`
 - `ExtractEngine`
@@ -64,6 +65,13 @@ flowchart LR
 ---
 
 ## 4. 引擎级 TDD 清单
+
+## 4.0 ConfigParserEngine
+
+- [ ] 非法 JSON 配置返回明确错误
+- [ ] 非法 YAML 配置返回明确错误
+- [ ] 同一用例的 JSON/YAML 解析结果完全一致
+- [ ] 解析后输出 `normalized_definition`
 
 ## 4.1 AssertEngine
 
@@ -113,5 +121,6 @@ flowchart LR
 
 - 测试先于实现存在（至少在提交中可追踪）。
 - 新增逻辑覆盖成功/失败/边界三类测试。
+- YAML/JSON 双格式必须有等价性测试。
 - 所有测试通过后再进入下一个功能点。
 - 未覆盖测试的功能点视为“未完成”。

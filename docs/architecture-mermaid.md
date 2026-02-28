@@ -6,6 +6,7 @@
 - 单数据库：PostgreSQL
 - 无 Redis / MQ / 对象存储
 - 规则与断言统一用 QLExpress
+- 用例配置支持 YAML / JSON 双格式
 
 ---
 
@@ -19,6 +20,7 @@ flowchart LR
       API --> ORCH[OrchestratorEngine]
       SCH[Scheduler] --> ORCH
 
+      ORCH --> PARSER[ConfigParserEngine]
       ORCH --> CTX[ContextEngine]
       ORCH --> RENDER[RequestRenderEngine]
       ORCH --> HTTP[HttpExecuteEngine]
@@ -43,6 +45,7 @@ sequenceDiagram
     participant C as Client
     participant A as Run API
     participant O as OrchestratorEngine
+    participant P as ConfigParserEngine
     participant D as PostgreSQL
     participant Q as QLExpressEngine
     participant H as HttpExecuteEngine
@@ -52,6 +55,8 @@ sequenceDiagram
     A->>O: start(runId)
 
     O->>D: load suite/cases/dataset/env
+    O->>P: parse case_config(JSON|YAML)
+    P-->>O: normalized definition
     O->>D: update t_test_run(status=RUNNING)
 
     loop each step
@@ -72,13 +77,14 @@ sequenceDiagram
 
 ---
 
-## 4. 用例结构图（Case Definition）
+## 4. 用例结构图（Case Config）
 
 ```mermaid
 classDiagram
     class CaseDefinition {
       +String caseCode
       +String caseName
+      +String configFormat
       +List~Step~ steps
     }
 
@@ -102,6 +108,8 @@ classDiagram
     Step "1" *-- "1" Request
 ```
 
+其中 `configFormat` 允许值为 `JSON` 或 `YAML`。
+
 ---
 
 ## 5. 运行状态机
@@ -122,7 +130,8 @@ stateDiagram-v2
 
 ## 6. 引擎边界说明
 
-1. **QLExpressEngine** 只做表达式计算，不负责 HTTP 发送。  
-2. **HttpExecuteEngine** 只做请求发送，不做断言。  
-3. **Assert/Extract** 依赖 QLExpressEngine，保持规则统一。  
-4. **OrchestratorEngine** 负责流程编排和落库，是唯一流程入口。  
+1. **ConfigParserEngine** 负责 YAML/JSON 解析与统一化，不参与 HTTP 执行。  
+2. **QLExpressEngine** 只做表达式计算，不负责 HTTP 发送。  
+3. **HttpExecuteEngine** 只做请求发送，不做断言。  
+4. **Assert/Extract** 依赖 QLExpressEngine，保持规则统一。  
+5. **OrchestratorEngine** 负责流程编排和落库，是唯一流程入口。  

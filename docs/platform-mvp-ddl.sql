@@ -3,7 +3,7 @@
 -- 说明：
 -- 1) 仅保留 MVP 必需表；
 -- 2) 不包含用户权限、消息队列、runner 节点、通知等扩展模型；
--- 3) 用例定义存为 JSON（case_definition），由自定义引擎执行。
+-- 3) 用例定义支持 YAML/JSON 原文入库，并归一化为 JSONB 执行。
 
 -- =========================
 -- 1. 项目与环境
@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS t_test_case (
     engine_type         VARCHAR(16) NOT NULL DEFAULT 'QLEXPRESS'
                         CHECK (engine_type IN ('QLEXPRESS')),
     case_schema_version INTEGER NOT NULL DEFAULT 1,
-    case_definition     JSONB NOT NULL,
+    config_format       VARCHAR(8) NOT NULL CHECK (config_format IN ('JSON', 'YAML')),
+    config_content      TEXT NOT NULL,
+    normalized_definition JSONB NOT NULL,
     tags                JSONB,
     version_no          INTEGER NOT NULL DEFAULT 1,
     status              VARCHAR(16) NOT NULL DEFAULT 'ACTIVE'
@@ -201,5 +203,5 @@ CREATE INDEX IF NOT EXISTS idx_t_test_plan_status
 
 -- 备注：
 -- 1) updated_at 可由应用层统一维护；
--- 2) case_definition 建议约定 step 结构，便于后续平滑升级；
+-- 2) config_content 保存原始 YAML/JSON，normalized_definition 用于执行；
 -- 3) 后续若规模增长，可增加 MQ/缓存/分布式执行能力。

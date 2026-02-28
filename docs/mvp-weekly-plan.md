@@ -10,7 +10,7 @@
 ## 2. MVP 范围（P0）
 
 1. 环境与变量管理
-2. 用例（`case_definition`）与数据集（JSON/YAML）管理
+2. 用例（YAML/JSON `case_config`）与数据集（JSON/YAML）管理
 3. 套件编排（顺序执行）
 4. 手动触发执行
 5. 报告查询（失败步骤、失败表达式）
@@ -24,7 +24,7 @@
 
 ## 4. 5 周排期（TDD 驱动）
 
-## Week 1：工程初始化 + TDD 骨架
+## Week 1：工程初始化 + TDD 骨架 + 配置解析器
 
 ### 目标
 - 项目可启动、测试框架可运行。
@@ -32,17 +32,17 @@
 
 ### TDD 动作
 - 建立单测基线（JUnit5 + AssertJ + Mockito）。
-- 先写 `AssertEngine` 的失败测试（Red）。
-- 写最小实现让测试通过（Green）。
+- 先写 `ConfigParserEngine` 失败测试（非法 YAML/JSON 必须失败）。
+- 写最小实现让 YAML/JSON 都能解析通过（Green）。
 - 抽取公共结构重构（Refactor）。
 
 ### 验收
 - `./mvnw test` 可执行。
-- 至少 1 个引擎测试完成 Red->Green 记录。
+- 至少 1 个解析引擎测试完成 Red->Green 记录。
 
 ---
 
-## Week 2：Case/DataSet 管理（测试先行）
+## Week 2：Case/DataSet 管理（YAML/JSON 测试先行）
 
 ### 目标
 - 完成 case 与 dataset CRUD。
@@ -50,11 +50,13 @@
 ### TDD 动作
 - 先写 API 层测试（请求校验、错误码、成功返回）。
 - 实现 `t_test_case`、`t_test_case_data_set`。
-- 增加 case_definition 结构校验测试（非法 step 必须失败）。
+- 增加 case_config 结构校验测试（非法 step 必须失败）。
+- 增加“同一用例 JSON 与 YAML 解析结果一致”测试。
 
 ### 验收
 - CRUD 功能可用。
-- case_definition 非法输入测试全通过。
+- case_config 非法输入测试全通过。
+- JSON/YAML 配置执行前归一化一致。
 
 ---
 
@@ -65,7 +67,7 @@
 
 ### TDD 动作
 - 先写 `OrchestratorEngine` 组件测试（mock HTTP）。
-- 再实现按 step 执行：渲染 -> 请求 -> 断言 -> 提取。
+- 再实现按 step 执行：解析配置 -> 渲染 -> 请求 -> 断言 -> 提取。
 - 补失败路径测试：断言失败后记录 failed expression。
 
 ### 验收
@@ -108,5 +110,6 @@
 
 - 每个功能模块都有对应测试，且先写测试再写实现。
 - 所有核心引擎至少有成功/失败/边界三类测试。
+- YAML/JSON 双格式必须有等价性测试。
 - 主链路（创建 case -> 执行 run -> 查询报告）有回归测试。
 - 测试全绿后才允许进入下一周功能。
