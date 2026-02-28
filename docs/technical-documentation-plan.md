@@ -171,3 +171,18 @@
 2. 再写最小实现使 JSON/YAML 都能解析为同一结构。  
 3. 按同样方式推进 `AssertEngine -> ExtractEngine -> OrchestratorEngine`。  
 4. 最后补 API 层测试，验证 YAML 与 JSON 执行结果一致。  
+
+---
+
+## 10. 架构冻结参数（v1）
+
+已确认并冻结：
+
+1. 无登录模式，但仅内网访问 + IP 白名单。
+2. YAML 禁用高级语法（anchor/alias、多文档）。
+3. Fail-fast 仅在 step 级生效；suite 遇 case 失败继续执行。
+4. QLExpress 采用函数白名单，禁止任意类访问。
+5. 默认资源参数：step 5s、case 60s、快照 16KB、数据保留 90 天。
+6. 定时任务同计划单实例，DB 锁防重入。
+
+详情见：`docs/architecture-freeze-v1.md`。

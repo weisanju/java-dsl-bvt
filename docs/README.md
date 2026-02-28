@@ -8,6 +8,7 @@
 - [MVP 按周排期（TDD 驱动）](./mvp-weekly-plan.md)
 - [TDD 开发指南](./tdd-development-guide.md)
 - [Case 配置规范（YAML / JSON）](./case-config-spec.md)
+- [架构冻结清单 v1](./architecture-freeze-v1.md)
 - [数据库表结构草案（极简 DDL）](./platform-mvp-ddl.sql)
 - [Mermaid 架构设计图](./architecture-mermaid.md)
 
@@ -16,9 +17,10 @@
 1. 先读 `technical-documentation-plan.md`（看功能清单与实现策略）
 2. 再读 `tdd-development-guide.md`（看 TDD 实操规则）
 3. 再读 `case-config-spec.md`（看 YAML/JSON 配置结构）
-4. 再读 `architecture-mermaid.md`（看系统组件图与执行时序）
-5. 再读 `mvp-weekly-plan.md`（看每周执行顺序）
-6. 最后看 `platform-mvp-ddl.sql`（看最小数据落地）
+4. 再读 `architecture-freeze-v1.md`（看已拍板参数）
+5. 再读 `architecture-mermaid.md`（看系统组件图与执行时序）
+6. 再读 `mvp-weekly-plan.md`（看每周执行顺序）
+7. 最后看 `platform-mvp-ddl.sql`（看最小数据落地）
 
 ## 文档使用约定
 

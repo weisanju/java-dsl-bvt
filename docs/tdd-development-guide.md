@@ -97,6 +97,8 @@ flowchart LR
 - [ ] 按 `exec_order` 执行
 - [ ] 失败 step 写入 `t_test_case_result`
 - [ ] 执行结束更新 `t_test_run` 状态
+- [ ] step 失败后终止当前 case（fail-fast）
+- [ ] case 失败后 suite 继续执行后续 case
 
 ---
 

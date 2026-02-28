@@ -135,3 +135,11 @@ stateDiagram-v2
 3. **HttpExecuteEngine** 只做请求发送，不做断言。  
 4. **Assert/Extract** 依赖 QLExpressEngine，保持规则统一。  
 5. **OrchestratorEngine** 负责流程编排和落库，是唯一流程入口。  
+
+---
+
+## 7. 执行策略说明（固定）
+
+1. step 失败：fail-fast，终止当前 case。  
+2. case 失败：suite 继续执行。  
+3. 访问模式：无登录，仅内网 + IP 白名单。  

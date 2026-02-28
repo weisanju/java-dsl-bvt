@@ -148,6 +148,14 @@ steps:
 3. 每个 step 必须包含 `name` 和 `request.method`、`request.urlExpr`。  
 4. `assertions`、`extracts`、`skipWhen` 表达式语法错误时拒绝保存。  
 5. `method` 必须是允许值（GET/POST/PUT/DELETE/PATCH）。  
+6. YAML 不允许 anchor/alias 与多文档语法。  
+
+---
+
+## 6.1 执行默认策略（固定）
+
+1. step 失败采用 fail-fast：终止当前 case。  
+2. case 失败不终止 suite：继续执行后续 case。  
 
 ---
 
